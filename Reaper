@@ -1,0 +1,14 @@
+{
+  "name": "REAPER",
+  "version": "1.0.0",
+  "description": "REAPER - Dark Savage Female Bot by Lord VirMak",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.0",
+    "pino": "^8.0.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
