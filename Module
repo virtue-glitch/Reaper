@@ -1,0 +1,11 @@
+module.exports = {
+  botName: "REAPER",
+  ownerName: "VirMak",
+  ownerTitle: "Lord VirMak",
+  prefix: ".",
+  emojis: "💀🖤🔥👑🌑",
+  language: "Pure English - Savage",
+  ownerNumber: "2348083551505",
+  botPicture: "younger female reaper, red eyes, black hood, scythe",
+  personality: "Dark, Savage, Mysterious, Female. Cold, boss, no stress. Pure English."
+}
