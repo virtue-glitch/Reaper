@@ -1,0 +1,77 @@
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const pino = require('pino');
+const settings = require('./settings.js');
+
+async function start() {
+  const { state, saveCreds } = await useMultiFileAuthState('session');
+  const sock = makeWASocket({
+    logger: pino({ level: 'silent' }),
+    auth: state,
+    printQRInTerminal: false,
+    browser: ["REAPER", "Chrome", "1.0.0"]
+  });
+
+  sock.ev.on('creds.update', saveCreds);
+
+  // PAIRING CODE - Use your bot number
+  if (!sock.authState.creds.registered) {
+    setTimeout(async () => {
+      try {
+        const code = await sock.requestPairingCode(settings.ownerNumber);
+        console.log(`\n💀 REAPER PAIRING CODE: ${code} 💀`);
+        console.log(`Go to WhatsApp > Linked Devices > Link with phone number > Enter this code\n`);
+      } catch (e) { console.log("Pairing error, restart:", e.message); }
+    }, 3000);
+  }
+
+  sock.ev.on('connection.update', (update) => {
+    const { connection, lastDisconnect } = update;
+    if (connection === 'close') {
+      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+      if (shouldReconnect) start();
+    } else if (connection === 'open') {
+      console.log(`👑 REAPER is ONLINE - Lord VirMak 💀🖤🔥👑🌑`);
+    }
+  });
+
+  sock.ev.on('messages.upsert', async ({ messages }) => {
+    const m = messages[0];
+    if (!m.message || m.key.fromMe) return;
+    const from = m.key.remoteJid;
+    const body = m.message.conversation || m.message.extendedTextMessage?.text || "";
+    if (!body.startsWith(settings.prefix)) return;
+
+    const args = body.slice(1).trim().split(/ +/);
+    const cmd = args.shift().toLowerCase();
+    const reply = async (text) => await sock.sendMessage(from, { text }, { quoted: m });
+
+    // COMMANDS
+    if (cmd === 'menu' || cmd === 'help') {
+      await reply(`💀🖤🔥 *REAPER MENU* 👑🌑\n\n*Owner:* Lord VirMak\n*Prefix:* .\n\n*GROUP:*\n.menu - Show this\n.kick @user - Remove user\n.tagall - Tag everyone\n.promote @user - Make admin\n.demote @user - Remove admin\n\n*FUN:*\n.joke - Savage joke\n.ping - Check speed\n.owner - Who is my owner?\n\n*REAPER IS WATCHING.* 💀`);
+    }
+    if (cmd === 'ping') await reply(`Pong! 💀 REAPER is fast. No time to waste.`);
+    if (cmd === 'owner') await reply(`My Owner is *Lord VirMak* 👑\nDon't play with him. 💀🖤🔥`);
+    if (cmd === 'joke') {
+      const jokes = [
+        "You are so slow, even REAPER is waiting for you.",
+        "Speak. I'm listening. Don't waste my time.",
+        "I don't argue with mortals. I just watch them fail."
+      ];
+      await reply(jokes[Math.floor(Math.random() * jokes.length)]);
+    }
+    if (cmd === 'tagall') {
+      try {
+        const group = await sock.groupMetadata(from);
+        const mentions = group.participants.map(p => p.id);
+        let text = `💀 *REAPER SUMMONS YOU ALL* 👑\n\n`;
+        group.participants.forEach(p => text += `@${p.id.split('@')[0]} `);
+        await sock.sendMessage(from, { text, mentions });
+      } catch { await reply(`This command is for groups only.`); }
+    }
+    if (cmd === 'kick') {
+      await reply(`To kick, REAPER needs to be admin. Use .kick @user - Lord VirMak only.`);
+    }
+  });
+}
+
+start();
